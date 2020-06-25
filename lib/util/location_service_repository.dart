@@ -4,11 +4,16 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:background_locator/location_dto.dart';
+import 'package:flutter/foundation.dart';
+import 'package:goetest/locationVO.dart';
 
-import 'file_manager.dart';
+import 'package:goetest/util/file_manager.dart';
 
-class LocationServiceRepository {
+class LocationServiceRepository extends ChangeNotifier {
+  String lat ;
   static LocationServiceRepository _instance = LocationServiceRepository._();
+
+  StreamController<LocationVO> locationStream = StreamController<LocationVO>();
 
   LocationServiceRepository._();
 
@@ -52,10 +57,14 @@ class LocationServiceRepository {
 
   Future<void> callback(LocationDto locationDto) async {
     print('$_count location in dart: ${locationDto.toString()}');
-    await setLogPosition(_count, locationDto);
+   // await setLogPosition(_count, locationDto);
     final SendPort send = IsolateNameServer.lookupPortByName(isolateName);
     send?.send(locationDto);
     _count++;
+lat = locationDto.latitude.toString();
+   LocationVO locationVO = LocationVO(locationDto.latitude.toString() , locationDto.longitude.toString());
+    locationStream.add(locationVO);
+    notifyListeners();
   }
 
   static Future<void> setLogLabel(String label) async {
@@ -84,8 +93,8 @@ class LocationServiceRepository {
   }
 
   static String formatLog(LocationDto locationDto) {
-    return dp(locationDto.latitude, 4).toString() +
+    return dp(locationDto.latitude, 8).toString() +
         " " +
-        dp(locationDto.longitude, 4).toString();
+        dp(locationDto.longitude, 8).toString();
   }
 }

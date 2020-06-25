@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:android_intent/android_intent.dart';
@@ -7,13 +6,19 @@ import 'package:background_locator/background_locator.dart';
 import 'package:background_locator/location_dto.dart';
 import 'package:background_locator/location_settings.dart';
 import 'package:flutter/material.dart';
+import 'package:goetest/locationVO.dart';
+import 'package:goetest/main_viewmodel.dart';
 import 'package:location_permissions/location_permissions.dart';
-import 'file_manager.dart';
-import 'location_callback_handler.dart';
-import 'location_service_repository.dart';
+import 'package:provider/provider.dart';
+import 'util/file_manager.dart';
+import 'util/location_callback_handler.dart';
+import 'util/location_service_repository.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 void main() {
-  runApp(MaterialApp(home: MyApp()));
+  runApp( MaterialApp(home: MyApp()),
+  );
+
 }
 
 class MyApp extends StatefulWidget {
@@ -21,7 +26,9 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
+class _MyAppState extends State<MyApp>{
+
+  MainViewModel _mainViewModel = MainViewModel();
   ReceivePort port = ReceivePort();
 
   String logStr = '';
@@ -30,8 +37,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
   DateTime lastTimeLocation;
 
 
-
   @override
+  void initState() {
+    // TODO: implement initState
+    _mainViewModel.startInit();
+    super.initState();
+  }
+  /*@override
   void initState() {
     super.initState();
 
@@ -53,7 +65,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
     initPlatformState();
   }
 
-  @override
+*//*  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // If user resumed to this app, check permission
     if(state == AppLifecycleState.resumed) {
@@ -67,7 +79,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
         }
       });
           }
-      }
+      }*//*
 
   @override
   void dispose() {
@@ -96,18 +108,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
     });
     print('Running ${isRunning.toString()}');
   }
-
+*/
   @override
   Widget build(BuildContext context) {
-    final start = SizedBox(
-      width: double.maxFinite,
-      child: RaisedButton(
-        child: Text('Start'),
-        onPressed: () {
-          _onStart();
-        },
-      ),
-    );
     final stop = SizedBox(
       width: double.maxFinite,
       child: RaisedButton(
@@ -139,44 +142,58 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
     }
     final status = Text("Status: $msgStatus");
 
-    String lastRunTxt = "-";
-    if (isRunning != null) {
-      if (isRunning) {
-        if (lastTimeLocation == null || lastLocation == null) {
-          lastRunTxt = "?";
-        } else {
-          lastRunTxt =
-              LocationServiceRepository.formatDateLog(lastTimeLocation) +
-                  "-" +
-                  LocationServiceRepository.formatLog(lastLocation);
-        }
-      }
-    }
-    final lastRun = Text(
-      "Last run: $lastRunTxt",
-    );
 
     final log = Text(
       logStr,
     );
+      return ChangeNotifierProvider<MainViewModel>(
+          create: (context) =>MainViewModel(),
+          child: MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              title: const Text('Flutter background Locator'),
+            ),
+            body: Container(
+              width: double.maxFinite,
+              padding: const EdgeInsets.all(22),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                SizedBox(
+                width: double.maxFinite,
+                  child: Consumer<MainViewModel>(
+                    builder: (context , mm , child){
+                      return RaisedButton(
+                        child: Text('Start'),
+                        onPressed: () {
+                          mm.onStart();
+                        },
+                      );
+                    },
 
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Flutter background Locator'),
-        ),
-        body: Container(
-          width: double.maxFinite,
-          padding: const EdgeInsets.all(22),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[start, stop, clear, status, lastRun, log],
+                  ),
+                ),
+
+                    stop, clear, status,
+                   Consumer<MainViewModel>(builder: (context , repo , child){
+                     return     Text(
+                         repo.latitude == null ?"asdf": repo.latitude
+                     );
+                   }),
+
+
+
+
+
+                    log],
+                ),
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+
   }
 
   void onStop() {
